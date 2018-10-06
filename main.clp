@@ -33,8 +33,7 @@
           (preparation 9 Blistered)
           (preparation 10 Home-grown)
           (preparation 11 Fermented)
-          (preparation 12 Ripe)
-          (preparation default Ripe))
+          (preparation 12 Ripe))
 
 (deffacts pepper-types
           (birth-month-to-pepper JAN "Wiri Wiri")
@@ -117,7 +116,8 @@
           (stage (current first-name)
                  (rest birth-month
                        spicy-level
-                       last-name))
+                       last-name
+                       collate))
           (ask first-name)
           (ask birth-month)
           (ask spicy-level)
@@ -244,7 +244,7 @@
          (debug-printout t "compacted birth month: " ?compacted crlf)
          (assert (birth-month ?compacted)))
 
-         
+
 ; spicy level
 (defrule request-spicy-level
          (stage (current spicy-level))
@@ -296,3 +296,86 @@
          =>
          (retract ?f)
          (assert (spicy-level ?num)))
+
+; last-name
+(defrule request-last-name
+         (stage (current last-name))
+         ?f <- (ask last-name)
+         =>
+         (retract ?f)
+         (printout t "enter your last name: ")
+         (assert (raw-last-name (readline))))
+
+(defrule empty-last-name
+         (stage (current last-name))
+         ?f <- (raw-last-name ?str)
+         (test (= (str-length ?str) 0))
+         =>
+         (retract ?f)
+         (assert (ask last-name))
+         (printout t "bad last name!" crlf))
+
+(defrule translate-last-name
+         (stage (current last-name))
+         ?f <- (raw-last-name ?str)
+         (test (> (str-length ?str) 0))
+         =>
+         (retract ?f)
+         (assert (fielded-last-name (string-to-field ?str))))
+
+(defrule bad-translated-last-name
+         (stage (current last-name))
+         ?f <- (fielded-last-name ?field)
+         (test (not (symbolp ?field)))
+         =>
+         (retract ?f)
+         (assert (ask last-name))
+         (printout t "bad last name!" crlf))
+
+(defrule good-translated-last-name
+         (stage (current last-name))
+         ?f <- (fielded-last-name ?field)
+         (test (symbolp ?field))
+         =>
+         (retract ?f)
+         (debug-printout t "last name: " 
+                         (upcase ?field)
+                         crlf)
+         (assert (upcased-last-name (upcase ?field))))
+
+(defrule extract-first-character
+         (stage (current last-name))
+         ?f <- (upcased-last-name ?last)
+         =>
+         (retract ?f)
+         (assert (last-name-first-char (string-to-field (sub-string 1 1 ?last)))))
+
+(defrule illegal-first-char-of-last-name:bad-type
+         (stage (current last-name))
+         ?f <- (last-name-first-char ?char)
+         (not (key-ingredient ?char ?))
+         =>
+         (retract ?f)
+         (assert (ask last-name))
+         (printout t "bad last name!" crlf))
+(defrule collate-results
+         (stage (current collate))
+         ?f <- (last-name-first-char ?char)
+         (key-ingredient ?char ?key)
+         ?f2 <- (spicy-level ?num)
+         (modifier ?num ?modifier)
+         ?f3 <- (birth-month ?month)
+         (birth-month-to-pepper ?month ?pepper)
+         ?f4 <- (first-name-length ?length)
+         (preparation ?length ?prep)
+         =>
+         (retract ?f 
+                  ?f2 
+                  ?f3
+                  ?f4)
+         (format t 
+                 "%s %s With %s %s%n"
+                 ?prep
+                 ?pepper
+                 ?modifier
+                 ?key))
