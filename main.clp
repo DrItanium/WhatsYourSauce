@@ -98,3 +98,76 @@
           (simplify OCTOBER to OCT)
           (simplify NOVEMBER to NOV)
           (simplify DECEMBER to DEC))
+
+(deftemplate stage
+             (slot current
+                   (type SYMBOL)
+                   (default ?NONE))
+             (multislot rest
+                        (type SYMBOL)
+                        (default ?NONE)))
+
+(deffacts stages
+          (stage (current first-name)
+                 (rest birth-month
+                       spicy-level
+                       last-name))
+          (ask first-name)
+          (ask birth-month)
+          (ask spicy-level)
+          (ask last-name))
+
+(defrule next-stage
+         (declare (salience -10000))
+         ?f <- (stage (rest ?next 
+                            $?rest))
+         =>
+         (modify ?f
+                 (current ?next)
+                 (rest ?rest)))
+
+(defrule request-first-name
+         (stage (current first-name))
+         ?f <- (ask last-name)
+         =>
+         (retract ?f)
+         (printout t "enter your first name: ")
+         (assert (raw-first-name (readline))))
+
+(defrule empty-first-name
+         (stage (current first-name))
+         ?f <- (raw-first-name ?str)
+         (test (= (str-length ?str) 0))
+         =>
+         (retract ?f)
+         (assert (ask last-name))
+         (printout t "bad first name!" crlf))
+
+(defrule translate-first-name
+         (stage (current first-name))
+         ?f <- (raw-first-name ?str)
+         (test (> (str-length ?str) 0))
+         =>
+         (retract ?f)
+         (assert (fielded-first-name (string-to-field ?str))))
+
+(defrule bad-translated-first-name
+         (stage (current first-name))
+         ?f <- (fielded-first-name ?field)
+         (test (not (symbolp ?field)))
+         =>
+         (retract ?f)
+         (assert (ask last-name))
+         (printout t "bad first name!" crlf))
+
+(defrule good-translated-first-name
+         (stage (current first-name))
+         ?f <- (fielded-first-name ?field)
+         (test (symbolp ?field))
+         =>
+         (retract ?f)
+         (assert (first-name-length (str-length ?field))))
+
+        
+
+
