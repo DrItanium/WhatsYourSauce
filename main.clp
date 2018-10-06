@@ -245,4 +245,54 @@
          (assert (birth-month ?compacted)))
 
          
-         
+; spicy level
+(defrule request-spicy-level
+         (stage (current spicy-level))
+         ?f <- (ask spicy-level)
+         =>
+         (retract ?f)
+         (printout t "How spicy are you (1-10)? ")
+         (assert (raw-spicy-level (readline))))
+(defrule empty-spicy-level
+         (stage (current spicy-level))
+         ?f <- (raw-spicy-level ?str)
+         (test (= (str-length ?str) 0))
+         =>
+         (retract ?f)
+         (assert (ask spicy-level))
+         (printout t "bad spicy level!" crlf))
+(defrule translate-spicy-level
+         (stage (current spicy-level))
+         ?f <- (raw-spicy-level ?str)
+         (test (> (str-length ?str) 0))
+         =>
+         (retract ?f)
+         (assert (fielded-spicy-level (string-to-field ?str))))
+
+(defrule spicy-level-not-number
+         (declare (salience 1))
+         (stage (current spicy-level))
+         ?f <- (fielded-spicy-level ?num)
+         (test (not (integerp ?num)))
+         =>
+         (retract ?f)
+         (assert (ask spicy-level))
+         (printout t "bad spicy level!" crlf))
+
+(defrule spicy-level-not-in-range
+         (declare (salience 1))
+         (stage (current spicy-level))
+         ?f <- (fielded-spicy-level ?num)
+         (test (and (integerp ?num)
+                    (not (<= 1 ?num 10))))
+         =>
+         (retract ?f)
+         (assert (ask spicy-level))
+         (printout t "bad spicy level!" crlf))
+
+(defrule spicy-level-is-good
+         (stage (current spicy-level))
+         ?f <- (fielded-spicy-level ?num)
+         =>
+         (retract ?f)
+         (assert (spicy-level ?num)))
