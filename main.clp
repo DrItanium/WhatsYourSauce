@@ -146,7 +146,7 @@
          (test (= (str-length ?str) 0))
          =>
          (retract ?f)
-         (assert (ask last-name))
+         (assert (ask first-name))
          (printout t "bad first name!" crlf))
 
 (defrule translate-first-name
@@ -163,7 +163,7 @@
          (test (not (symbolp ?field)))
          =>
          (retract ?f)
-         (assert (ask last-name))
+         (assert (ask first-name))
          (printout t "bad first name!" crlf))
 
 (defrule good-translated-first-name
