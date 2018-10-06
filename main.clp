@@ -15,6 +15,12 @@
 ; 2. Altered source versions must be plainly marked as such, and must not be
 ;    misrepresented as being the original software.
 ; 3. This notice may not be removed or altered from any source distribution.
+(defglobal MAIN
+           ?*debug* = TRUE)
+(deffunction debug-printout
+             (?router $?options)
+             (if ?*debug* then
+               (printout ?router "DEBUG: " (expand$ ?options))))
 (deffacts preparation
           (preparation 1 Sun-dried)
           (preparation 2 Heirloom)
@@ -125,10 +131,10 @@
          (modify ?f
                  (current ?next)
                  (rest ?rest)))
-
+; getting the first name
 (defrule request-first-name
          (stage (current first-name))
-         ?f <- (ask last-name)
+         ?f <- (ask first-name)
          =>
          (retract ?f)
          (printout t "enter your first name: ")
@@ -166,8 +172,77 @@
          (test (symbolp ?field))
          =>
          (retract ?f)
+         (debug-printout t "first name length: " 
+                         (str-length ?field) 
+                         crlf)
          (assert (first-name-length (str-length ?field))))
 
-        
+(defrule normalize-first-name-length
+         (stage (current first-name))
+         ?f <- (first-name-length ?length)
+         (test (> ?length 12))
+         =>
+         (retract ?f)
+         (assert (first-name-length 12)))
 
 
+; getting the birth month
+(defrule request-birth-month
+         (stage (current birth-month))
+         ?f <- (ask birth-month)
+         =>
+         (retract ?f)
+         (printout t "enter your birth month: ")
+         (assert (raw-birth-month (readline))))
+
+(defrule empty-birth-month
+         (stage (current birth-month))
+         ?f <- (raw-birth-month ?str)
+         (test (= (str-length ?str) 0))
+         =>
+         (retract ?f)
+         (assert (ask birth-month))
+         (printout t "bad birth month!" crlf))
+(defrule translate-birth-month
+         (stage (current birth-month))
+         ?f <- (raw-birth-month ?str)
+         (test (> (str-length ?str) 0))
+         =>
+         (retract ?f)
+         (assert (fielded-birth-month (string-to-field ?str))))
+
+(defrule birth-month-not-a-symbol
+         (stage (current birth-month))
+         ?f <- (fielded-birth-month ?mon)
+         (test (not (symbolp ?mon)))
+         =>
+         (printout t "bad birth month!" crlf)
+         (retract ?f)
+         (assert (ask birth-month)))
+(defrule birth-month-a-symbol-so-upcase-it
+         (stage (current birth-month))
+         ?f <- (fielded-birth-month ?mon)
+         (test (symbolp ?mon))
+         =>
+         (retract ?f)
+         (assert (upcased-birth-month (upcase ?mon))))
+
+(defrule bad-birth-month
+         (stage (current birth-month))
+         ?f <- (upcased-birth-month ?mon)
+         (not (simplify ?mon to ?))
+         =>
+         (retract ?f)
+         (printout t "bad birth month!" crlf)
+         (assert (ask birth-month)))
+(defrule good-birth-month
+         (stage (current birth-month))
+         ?f <- (upcased-birth-month ?mon)
+         (simplify ?mon to ?compacted)
+         =>
+         (retract ?f)
+         (debug-printout t "compacted birth month: " ?compacted crlf)
+         (assert (birth-month ?compacted)))
+
+         
+         
